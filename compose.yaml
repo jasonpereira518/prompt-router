@@ -1,0 +1,46 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ORIGIN: https://${OMNI_DOMAIN:?Set OMNI_DOMAIN}
+      OMNI_GATEWAY_URL: http://omniroute:20128
+      OMNI_DATA_DIR: /app/data
+    volumes:
+      - ./data/app:/app/data
+      - ./backups:/app/backups
+    depends_on:
+      - omniroute
+  omniroute:
+    image: diegosouzapw/omniroute:3.8.51@sha256:8bd462c9f60d8eda79329cfbb6ea7ea723505fe7721beb944f3d43835409e218
+    restart: unless-stopped
+    environment:
+      DATA_DIR: /app/data
+      HOSTNAME: 0.0.0.0
+      API_HOST: 0.0.0.0
+      REQUIRE_API_KEY: "true"
+      INITIAL_PASSWORD: ${GATEWAY_INITIAL_PASSWORD:?Set GATEWAY_INITIAL_PASSWORD}
+      JWT_SECRET: ${GATEWAY_JWT_SECRET:?Set GATEWAY_JWT_SECRET}
+      API_KEY_SECRET: ${GATEWAY_API_KEY_SECRET:?Set GATEWAY_API_KEY_SECRET}
+    volumes:
+      - ./data/gateway:/app/data
+    ports:
+      - "127.0.0.1:20128:20128"
+  proxy:
+    image: caddy:2.11-alpine
+    restart: unless-stopped
+    environment:
+      OMNI_DOMAIN: ${OMNI_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+volumes:
+  caddy_data:
+  caddy_config:
