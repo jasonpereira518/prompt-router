@@ -1,0 +1,9 @@
+{$OMNI_DOMAIN} {
+    encode gzip
+    reverse_proxy app:3000 {
+        flush_interval -1
+        transport http {
+            read_timeout 11m
+        }
+    }
+}
